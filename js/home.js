@@ -1,6 +1,9 @@
 /* ============================================================
-   主页逻辑：根据 js/games-data.js 的数据渲染成"文件夹"，
-   以及状态栏时钟、点击音效。
+   主页逻辑：
+   1) 根据 js/games-data.js 渲染"游戏文件夹"
+   2) 搜索框：输入游戏名 → 下拉结果 → 点击直接进入游戏
+   3) 状态栏时钟、点击音效
+
    以后加新游戏只改 games-data.js，本文件无需改动。
    ============================================================ */
 (() => {
@@ -33,17 +36,13 @@
   const countEl = document.getElementById('game-count');
   const games = window.GAMES || [];
 
-  let availableCount = 0;
   const frag = document.createDocumentFragment();
-
   games.forEach((g) => {
-    // 可玩的游戏生成 <a> 文件夹链接；未上线的生成灰色禁用文件夹
     const el = document.createElement(g.available ? 'a' : 'div');
     el.className = 'folder' + (g.available ? '' : ' disabled');
     if (g.available) {
       el.href = g.url;
       el.addEventListener('click', clickSound);
-      availableCount++;
     }
     el.innerHTML =
       '<span class="folder-icon"><span class="folder-inner">' + g.icon + '</span></span>' +
@@ -51,11 +50,86 @@
       '<span class="folder-en">' + g.en + '</span>';
     frag.appendChild(el);
   });
-
   listEl.appendChild(frag);
   if (countEl) countEl.textContent = '共 ' + games.length + ' 个对象';
 
-  /* ---------- 3. 状态栏时钟 ---------- */
+  /* ---------- 3. 游戏搜索：输入 → 实时下拉结果 → 点击跳转 ---------- */
+  const searchInput = document.getElementById('game-search');
+  const searchDrop = document.getElementById('search-drop');
+  const searchGo = document.getElementById('search-go');
+
+  // 按关键字过滤游戏（支持中文名 / 英文名 / id）
+  function matchGames(query) {
+    const q = query.trim().toLowerCase();
+    if (!q) return [];
+    return games.filter((g) =>
+      g.name.toLowerCase().includes(q) ||
+      g.en.toLowerCase().includes(q) ||
+      (g.id && g.id.toLowerCase().includes(q))
+    );
+  }
+
+  // 渲染下拉结果
+  function renderResults(query) {
+    searchDrop.innerHTML = '';
+    const results = matchGames(query);
+
+    if (!results.length) {
+      searchDrop.innerHTML = '<div class="search-empty">没有找到匹配的游戏</div>';
+      searchDrop.hidden = false;
+      return;
+    }
+
+    const frag2 = document.createDocumentFragment();
+    results.forEach((g) => {
+      const item = document.createElement('div');
+      item.className = 'search-item' + (g.available ? '' : ' disabled');
+      item.innerHTML =
+        '<span class="si-icon">' + g.icon + '</span>' +
+        '<span><b>' + g.name + '</b><small>' + g.en + '</small></span>';
+      item.addEventListener('click', () => {
+        clickSound();
+        if (g.available) location.href = g.url; // 点击直接进入游戏
+      });
+      frag2.appendChild(item);
+    });
+    searchDrop.appendChild(frag2);
+    searchDrop.hidden = false;
+  }
+
+  function hideResults() {
+    searchDrop.hidden = true;
+    searchDrop.innerHTML = '';
+  }
+
+  // 输入时实时搜索
+  searchInput.addEventListener('input', () => {
+    const q = searchInput.value.trim();
+    q ? renderResults(q) : hideResults();
+  });
+
+  // 回车：直接打开第一个可玩的匹配游戏
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const first = matchGames(searchInput.value)[0];
+      if (first && first.available) location.href = first.url;
+      else if (first && !first.available) clickSound();
+    }
+  });
+
+  // "搜索"按钮：与回车行为一致
+  searchGo.addEventListener('click', () => {
+    clickSound();
+    const first = matchGames(searchInput.value)[0];
+    if (first && first.available) location.href = first.url;
+  });
+
+  // 点击页面其他地方：关闭下拉
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.toolbar')) hideResults();
+  });
+
+  /* ---------- 4. 状态栏时钟 ---------- */
   const clock = document.getElementById('clock');
   const pad = (n) => String(n).padStart(2, '0');
   const tick = () => {
