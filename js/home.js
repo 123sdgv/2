@@ -1,6 +1,6 @@
 /* ============================================================
-   主页逻辑：根据 js/games-data.js 的数据渲染游戏卡片，
-   以及任务栏时钟、点击音效。
+   主页逻辑：根据 js/games-data.js 的数据渲染成"文件夹"，
+   以及状态栏时钟、点击音效。
    以后加新游戏只改 games-data.js，本文件无需改动。
    ============================================================ */
 (() => {
@@ -28,7 +28,7 @@
     } catch (e) { /* 不支持音频时静默忽略 */ }
   }
 
-  /* ---------- 2. 渲染游戏卡片（数据来自 games-data.js） ---------- */
+  /* ---------- 2. 渲染游戏"文件夹"（数据来自 games-data.js） ---------- */
   const listEl = document.getElementById('game-list');
   const countEl = document.getElementById('game-count');
   const games = window.GAMES || [];
@@ -37,26 +37,25 @@
   const frag = document.createDocumentFragment();
 
   games.forEach((g) => {
-    // 可玩的游戏生成 <a> 链接；未上线的生成灰色禁用卡片
-    const card = document.createElement(g.available ? 'a' : 'div');
-    card.className = 'game-card' + (g.available ? '' : ' disabled');
+    // 可玩的游戏生成 <a> 文件夹链接；未上线的生成灰色禁用文件夹
+    const el = document.createElement(g.available ? 'a' : 'div');
+    el.className = 'folder' + (g.available ? '' : ' disabled');
     if (g.available) {
-      card.href = g.url;
-      card.addEventListener('click', clickSound);
+      el.href = g.url;
+      el.addEventListener('click', clickSound);
       availableCount++;
     }
-    card.innerHTML =
-      '<span class="game-icon">' + g.icon + '</span>' +
-      '<strong>' + g.name + '</strong>' +
-      '<small>' + g.en + '</small>' +
-      (g.available ? '<button>开始游戏</button>' : '<em>即将推出</em>');
-    frag.appendChild(card);
+    el.innerHTML =
+      '<span class="folder-icon"><span class="folder-inner">' + g.icon + '</span></span>' +
+      '<span class="folder-name">' + g.name + '</span>' +
+      '<span class="folder-en">' + g.en + '</span>';
+    frag.appendChild(el);
   });
 
   listEl.appendChild(frag);
-  if (countEl) countEl.textContent = availableCount + ' 个可用游戏';
+  if (countEl) countEl.textContent = '共 ' + games.length + ' 个对象';
 
-  /* ---------- 3. 任务栏时钟 ---------- */
+  /* ---------- 3. 状态栏时钟 ---------- */
   const clock = document.getElementById('clock');
   const pad = (n) => String(n).padStart(2, '0');
   const tick = () => {
