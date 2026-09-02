@@ -3,28 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Windows Classic Games</title>
+  <title>Winbox · 经典游戏收藏</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📁</text></svg>">
   <link rel="stylesheet" href="css/home.css">
 </head>
 <body>
-  <main class="desktop">
-    <section class="window">
-      <header class="titlebar"><span>🎮 Windows Classic Games</span><span>— □ ×</span></header>
-      <nav class="menubar"><span>文件</span><span>游戏</span><span>帮助</span></nav>
-      <div class="content">
-        <h1>经典游戏</h1>
-        <p class="subtitle">Windows XP 风格网页版小游戏</p>
-        <!-- 游戏卡片由 js/games-data.js + js/home.js 自动生成，这里不放硬编码 -->
-        <div class="games" id="game-list"></div>
+  <!-- XP 横断山丘桌面 -->
+  <div class="desktop">
+
+    <!-- Winbox 窗口（Windows 资源管理器风格） -->
+    <div class="winbox">
+
+      <!-- 蓝色渐变标题栏 -->
+      <header class="titlebar">
+        <span class="tb-title">📁 Winbox</span>
+        <div class="tb-btns">
+          <button class="tb-btn" title="最小化">─</button>
+          <button class="tb-btn" title="最大化">□</button>
+          <button class="tb-btn tb-close" title="关闭">✕</button>
+        </div>
+      </header>
+
+      <!-- 菜单栏 -->
+      <nav class="menubar">
+        <span class="menu-item">文件(<u>F</u>)</span>
+        <span class="menu-item">编辑(<u>E</u>)</span>
+        <span class="menu-item">查看(<u>V</u>)</span>
+        <span class="menu-item">收藏(<u>A</u>)</span>
+        <span class="menu-item">工具(<u>T</u>)</span>
+        <span class="menu-item">帮助(<u>H</u>)</span>
+      </nav>
+
+      <!-- 工具栏 / 地址栏 -->
+      <div class="toolbar">
+        <button class="nav-btn" title="后退" disabled>←</button>
+        <button class="nav-btn" title="前进" disabled>→</button>
+        <div class="addr">地址:&nbsp;<b>C:\Winbox</b></div>
+        <button class="go-btn">转到</button>
       </div>
-      <footer><span>就绪</span><span id="game-count">0 个可用游戏</span></footer>
-    </section>
-    <div class="taskbar">
-      <button>🪟 开始</button>
-      <span>🎮 Windows Classic Games</span>
-      <time id="clock"></time>
+
+      <!-- 内容区：文件夹视图 -->
+      <main class="content">
+        <h2 class="section-title">📂 游戏文件夹</h2>
+        <p class="tip">单击一个文件夹将其打开</p>
+        <!-- 文件夹由 js/games-data.js 数据自动生成 -->
+        <div class="folders" id="game-list"></div>
+      </main>
+
+      <!-- 状态栏 -->
+      <footer class="statusbar">
+        <span id="game-count">共 0 个对象</span>
+        <span id="clock">--:--</span>
+      </footer>
     </div>
-  </main>
+
+  </div>
+
   <!-- 先加载数据配置，再加载渲染逻辑 -->
   <script src="js/games-data.js"></script>
   <script src="js/home.js"></script>
