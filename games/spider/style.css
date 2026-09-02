@@ -1,11 +1,10 @@
 /* ============================================================
-   蜘蛛纸牌样式（Windows XP 风格）
+   蜘蛛纸牌 · Windows XP 风格样式
+   包含：移动端适配 / 卡牌红黑花色 / 落牌动画
    ============================================================ */
 * { box-sizing: border-box; }
 
-/* 重要：全局保证 [hidden] 属性始终隐藏元素。
-   否则 .message 等显式设置了 display 的样式会覆盖
-   浏览器对 hidden 的默认 display:none，导致弹窗一进页面就显示。 */
+/* 保证 hidden 属性始终生效（防止 display 样式覆盖导致弹窗白屏） */
 [hidden] { display: none !important; }
 
 html, body {
@@ -14,11 +13,11 @@ html, body {
   font-family: Tahoma, 'Microsoft YaHei', sans-serif;
   background: #063e25; /* 深绿桌布底色 */
 }
-body { padding: 18px 10px; color: #111; }
+body { padding: 16px 10px; color: #111; }
 
 /* ---------- 主窗口 ---------- */
 .game-window {
-  width: min(1120px, 100%);
+  width: min(1160px, 100%);
   margin: auto;
   background: #ece9d8;
   border: 2px solid #073b80;
@@ -36,60 +35,73 @@ body { padding: 18px 10px; color: #111; }
   font-weight: bold;
   background: linear-gradient(#156bea, #0750b8);
 }
-.titlebar a { color: #fff; text-decoration: none; font-size: 20px; line-height: 20px; }
-.menubar {
-  height: 26px;
-  display: flex;
-  gap: 25px;
-  align-items: center;
-  padding-left: 10px;
-  font-size: 12px;
-  border-bottom: 1px solid #bbb;
-}
+.tb-title { text-shadow: 1px 1px 1px #0006; }
+.tb-close { color: #fff; text-decoration: none; font-size: 16px; line-height: 20px; padding: 0 5px; border-radius: 2px; }
+.tb-close:hover { background: #c33; }
 
-/* ---------- 工具栏 ---------- */
+/* ---------- 菜单栏：操作按钮横排（全部可点击） ---------- */
+.menubar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  background: #ece9d8;
+  border-bottom: 1px solid #bbb;
+  overflow-x: auto;        /* 手机窄屏可横向滑动 */
+  -webkit-overflow-scrolling: touch;
+}
+.menu-item {
+  font: 12px Tahoma;
+  color: #111;
+  background: none;
+  border: 1px solid transparent;
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.menu-item:hover { background: #156bea; color: #fff; }
+.menu-item:active { background: #0d4ba8; }
+.menu-item:disabled { color: #999; cursor: default; }
+.menu-item:disabled:hover { background: none; color: #999; }
+.menu-sep { width: 1px; height: 18px; background: #aaa; margin: 0 6px; flex-shrink: 0; }
+
+/* ---------- 信息栏 ---------- */
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
-  padding: 7px 10px;
+  padding: 6px 10px;
   background: #d8d4c8;
   border-bottom: 1px solid #888;
   font-size: 12px;
 }
-.toolbar button,
-.message button,
-.message a {
-  font: 12px Tahoma;
-  padding: 4px 13px;
-  color: #111;
-  text-decoration: none;
-  background: linear-gradient(#fff, #d8d4c8);
-  border: 1px solid #17477e;
-  box-shadow: inset 1px 1px #fff, inset -1px -1px #555;
-  cursor: pointer;
-}
-.toolbar button:disabled {
-  color: #999;
-  background: #d0ccc0;
-  cursor: default;
-}
+.toolbar b { color: #0750b8; }
 
-/* ---------- 牌桌 ---------- */
+/* ---------- 牌桌：外层横向滚动，兼容手机竖屏 ---------- */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #08703c; /* 经典绿色牌桌 */
+}
 .table {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(10, minmax(54px, 1fr));
+  grid-template-columns: repeat(10, 60px);
   gap: 7px;
-  min-height: 610px;
   padding: 12px;
-  background: #08703c; /* 经典绿色牌桌 */
-  overflow: auto;
+  min-width: 662px;      /* 60*10 + 7*9 + 24，手机端横向滑动看完整 */
+  min-height: 590px;
+  margin: 0 auto;
+}
+/* 桌面宽屏：列自适应拉伸 */
+@media (min-width: 780px) {
+  .table { grid-template-columns: repeat(10, minmax(60px, 1fr)); min-width: 0; }
 }
 .column {
   position: relative;
-  min-height: 570px;
+  min-height: 560px;
   border-radius: 5px;
   background: #00603333;
 }
@@ -99,40 +111,51 @@ body { padding: 18px 10px; color: #111; }
   position: absolute;
   left: 0;
   width: 100%;
-  height: 76px;
+  height: 74px;
   border-radius: 5px;
-  border: 1px solid #333;
+  border: 1px solid #444;
   box-shadow: 1px 2px 2px #0008;
-  display: flex;
-  align-items: flex-start;
-  padding: 5px;
-  background: #fff;
-  color: #111;
-  font: bold 18px 'Courier New', monospace;
+  background: linear-gradient(160deg, #fff, #f2f2f2);
   cursor: pointer;
 }
-/* 背面：经典红色条纹 */
+/* 牌面文本：左上角点数 + 花色，右下角反向小字 */
+.card .rank  { position: absolute; left: 4px; top: 2px;  font: bold 17px 'Courier New', monospace; }
+.card .suit  { position: absolute; left: 5px; top: 21px; font-size: 16px; line-height: 1; }
+.card .suit-b{ position: absolute; right: 3px; bottom: 2px; font: bold 10px 'Courier New'; transform: rotate(180deg); }
+.card.red { color: #b40000; }   /* ❤ 红牌 */
+.card.face:hover { filter: brightness(1.06); z-index: 20; }
+
+/* 背面：经典红色斜纹（Windows 老式牌背） */
 .card.back {
-  background: repeating-linear-gradient(45deg,
-    #c32020 0 3px, #f7d1a1 3px 5px, #a91414 5px 8px);
+  background:
+    repeating-linear-gradient(45deg, #c32020 0 3px, #f7d1a1 3px 5px, #a91414 5px 8px);
   border: 4px double #fff;
-  color: transparent;
   cursor: default;
 }
+
+/* 选中牌组：黄色描边 + 上浮 */
 .card.selected {
   outline: 3px solid #ffd400;
-  transform: translateY(-3px);
+  transform: translateY(-4px);
   z-index: 30;
 }
+
+/* ---------- 落牌 / 发牌动画 ---------- */
+@keyframes dropIn {
+  from { transform: translateY(-16px) scale(.94); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+.card.drop-in { animation: dropIn .22s ease; z-index: 25; }
+.card.deal-in { animation: dropIn .28s ease both; z-index: 25; }
 
 /* ---------- 已完成序列徽章 ---------- */
 .complete {
   position: absolute;
   top: 3px;
-  width: 39px;
-  height: 54px;
+  width: 42px;
+  height: 56px;
   border-radius: 4px;
-  background: #fff;
+  background: linear-gradient(160deg, #fff, #eee);
   color: #b40000;
   display: grid;
   place-items: center;
@@ -149,10 +172,9 @@ body { padding: 18px 10px; color: #111; }
   border-top: 1px solid #aaa;
   font-size: 11px;
 }
+.hint b { color: #0750b8; }
 
-/* ---------- 胜利弹窗 ---------- */
-/* 默认隐藏；只有移除 hidden 属性（game.js 里 message.hidden = false）
-   时才以 grid 方式显示。 */
+/* ---------- 弹窗（胜利 / 帮助 共用） ---------- */
 .message {
   position: fixed;
   inset: 0;
@@ -160,23 +182,50 @@ body { padding: 18px 10px; color: #111; }
   place-items: center;
   background: #0008;
   z-index: 50;
+  padding: 16px;
+  overflow: auto;
 }
-.message:not([hidden]) {
-  display: grid;
-}
-.message > div {
-  padding: 25px 35px;
+.message:not([hidden]) { display: grid; }
+.msg-box {
+  padding: 22px 30px;
   text-align: center;
   background: #ece9d8;
   border: 2px solid #073b80;
-  box-shadow: 0 8px 20px #000;
+  border-radius: 6px;
+  box-shadow: 0 8px 26px #000;
+  max-width: 420px;
+  width: 100%;
 }
-.message h2 { color: #0750b8; margin-top: 0; }
-.message a { display: inline-block; margin-left: 8px; }
+.msg-box h2 { color: #0750b8; margin: 0 0 8px; }
+.msg-box p { margin: 6px 0; line-height: 1.6; font-size: 12px; }
+.msg-btns { margin-top: 14px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.msg-box button, .msg-box a {
+  font: 12px Tahoma;
+  padding: 5px 14px;
+  color: #111;
+  text-decoration: none;
+  background: linear-gradient(#fff, #d8d4c8);
+  border: 1px solid #17477e;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #555;
+  cursor: pointer;
+}
 
-/* ---------- 小屏适配 ---------- */
+/* ---------- 胜利特效画布 ---------- */
+#fx {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 40;
+  display: none;
+}
+
+/* ---------- 移动端适配 ---------- */
 @media (max-width: 700px) {
   body { padding: 0; }
-  .table { grid-template-columns: repeat(10, 70px); }
-  .game-window { border-radius: 0; }
+  .game-window { border-radius: 0; border: none; }
+  .titlebar { height: 34px; }
+  .toolbar { gap: 10px; font-size: 11px; padding: 6px 8px; }
+  .hint { font-size: 10px; }
 }
