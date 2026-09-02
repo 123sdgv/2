@@ -11,7 +11,7 @@
   <!-- XP 横断山丘桌面 -->
   <div class="desktop">
 
-    <!-- Winbox 窗口（Windows 资源管理器风格） -->
+    <!-- Winbox 窗口 -->
     <div class="winbox">
 
       <!-- 蓝色渐变标题栏 -->
@@ -34,19 +34,24 @@
         <span class="menu-item">帮助(<u>H</u>)</span>
       </nav>
 
-      <!-- 工具栏 / 地址栏 -->
+      <!-- 搜索工具栏：输入游戏名 → 弹出结果 → 点击直接进入游戏 -->
       <div class="toolbar">
         <button class="nav-btn" title="后退" disabled>←</button>
         <button class="nav-btn" title="前进" disabled>→</button>
-        <div class="addr">地址:&nbsp;<b>C:\Winbox</b></div>
-        <button class="go-btn">转到</button>
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="game-search" placeholder="搜索游戏名，如：蜘蛛 / solitaire..."
+                 autocomplete="off" spellcheck="false">
+        </div>
+        <button class="go-btn" id="search-go">搜索</button>
+        <!-- 搜索下拉结果 -->
+        <div class="search-drop" id="search-drop" hidden></div>
       </div>
 
       <!-- 内容区：文件夹视图 -->
       <main class="content">
         <h2 class="section-title">📂 游戏文件夹</h2>
-        <p class="tip">单击一个文件夹将其打开</p>
-        <!-- 文件夹由 js/games-data.js 数据自动生成 -->
+        <p class="tip">单击一个文件夹将其打开，或用顶部搜索框快速查找</p>
         <div class="folders" id="game-list"></div>
       </main>
 
