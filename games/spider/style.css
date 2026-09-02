@@ -1,1 +1,171 @@
-*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Tahoma,'Microsoft YaHei',sans-serif;background:#063e25}body{padding:18px 10px;color:#111}.game-window{width:min(1120px,100%);margin:auto;background:#ece9d8;border:2px solid #073b80;border-radius:8px 8px 3px 3px;box-shadow:0 12px 35px #0008;overflow:hidden}.titlebar{height:30px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;color:#fff;font-weight:bold;background:linear-gradient(#156bea,#0750b8)}.titlebar a{color:#fff;text-decoration:none;font-size:20px}.menubar{height:26px;display:flex;gap:25px;align-items:center;padding-left:10px;font-size:12px;border-bottom:1px solid #bbb}.toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 10px;background:#d8d4c8;border-bottom:1px solid #888;font-size:12px}.toolbar button,.message button,.message a{font:12px Tahoma;padding:4px 13px;color:#111;text-decoration:none;background:linear-gradient(#fff,#d8d4c8);border:1px solid #17477e;box-shadow:inset 1px 1px #fff,inset -1px -1px #555;cursor:pointer}.table{position:relative;display:grid;grid-template-columns:repeat(10,minmax(54px,1fr));gap:7px;min-height:610px;padding:12px;background:#08703c;overflow:auto}.column{position:relative;min-height:570px;border-radius:5px;background:#00603333}.card{position:absolute;left:0;width:100%;height:76px;border-radius:5px;border:1px solid #333;box-shadow:1px 2px 2px #0008;display:flex;align-items:flex-start;padding:5px;background:#fff;color:#111;font:bold 18px 'Courier New',monospace;cursor:pointer}.card.back{background:repeating-linear-gradient(45deg,#c32020 0 3px,#f7d1a1 3px 5px,#a91414 5px 8px);border:4px double #fff;color:transparent;cursor:default}.card.selected{outline:3px solid #ffd400;transform:translateY(-3px);z-index:30}.card.red{color:#b40000}.complete{position:absolute;right:3px;top:3px;width:39px;height:54px;border-radius:4px;background:#fff;color:#b40000;display:grid;place-items:center;font:bold 20px 'Courier New';box-shadow:1px 2px 2px #0008}.hint{padding:7px;text-align:center;background:#d8d4c8;border-top:1px solid #aaa;font-size:11px}.message{position:fixed;inset:0;display:grid;place-items:center;background:#0008;z-index:50}.message>div{padding:25px 35px;text-align:center;background:#ece9d8;border:2px solid #073b80;box-shadow:0 8px 20px #000}.message h2{color:#0750b8;margin-top:0}.message a{display:inline-block;margin-left:8px}@media(max-width:700px){body{padding:0}.table{grid-template-columns:repeat(10,70px)}.game-window{border-radius:0}}
+/* ============================================================
+   蜘蛛纸牌样式（Windows XP 风格）
+   ============================================================ */
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: Tahoma, 'Microsoft YaHei', sans-serif;
+  background: #063e25; /* 深绿桌布底色 */
+}
+body { padding: 18px 10px; color: #111; }
+
+/* ---------- 主窗口 ---------- */
+.game-window {
+  width: min(1120px, 100%);
+  margin: auto;
+  background: #ece9d8;
+  border: 2px solid #073b80;
+  border-radius: 8px 8px 3px 3px;
+  box-shadow: 0 12px 35px #0008;
+  overflow: hidden;
+}
+.titlebar {
+  height: 30px;
+  padding: 0 9px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #fff;
+  font-weight: bold;
+  background: linear-gradient(#156bea, #0750b8);
+}
+.titlebar a { color: #fff; text-decoration: none; font-size: 20px; line-height: 20px; }
+.menubar {
+  height: 26px;
+  display: flex;
+  gap: 25px;
+  align-items: center;
+  padding-left: 10px;
+  font-size: 12px;
+  border-bottom: 1px solid #bbb;
+}
+
+/* ---------- 工具栏 ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 7px 10px;
+  background: #d8d4c8;
+  border-bottom: 1px solid #888;
+  font-size: 12px;
+}
+.toolbar button,
+.message button,
+.message a {
+  font: 12px Tahoma;
+  padding: 4px 13px;
+  color: #111;
+  text-decoration: none;
+  background: linear-gradient(#fff, #d8d4c8);
+  border: 1px solid #17477e;
+  box-shadow: inset 1px 1px #fff, inset -1px -1px #555;
+  cursor: pointer;
+}
+.toolbar button:disabled {
+  color: #999;
+  background: #d0ccc0;
+  cursor: default;
+}
+
+/* ---------- 牌桌 ---------- */
+.table {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(54px, 1fr));
+  gap: 7px;
+  min-height: 610px;
+  padding: 12px;
+  background: #08703c; /* 经典绿色牌桌 */
+  overflow: auto;
+}
+.column {
+  position: relative;
+  min-height: 570px;
+  border-radius: 5px;
+  background: #00603333;
+}
+
+/* ---------- 卡牌 ---------- */
+.card {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 76px;
+  border-radius: 5px;
+  border: 1px solid #333;
+  box-shadow: 1px 2px 2px #0008;
+  display: flex;
+  align-items: flex-start;
+  padding: 5px;
+  background: #fff;
+  color: #111;
+  font: bold 18px 'Courier New', monospace;
+  cursor: pointer;
+}
+/* 背面：经典红色条纹 */
+.card.back {
+  background: repeating-linear-gradient(45deg,
+    #c32020 0 3px, #f7d1a1 3px 5px, #a91414 5px 8px);
+  border: 4px double #fff;
+  color: transparent;
+  cursor: default;
+}
+.card.selected {
+  outline: 3px solid #ffd400;
+  transform: translateY(-3px);
+  z-index: 30;
+}
+
+/* ---------- 已完成序列徽章 ---------- */
+.complete {
+  position: absolute;
+  top: 3px;
+  width: 39px;
+  height: 54px;
+  border-radius: 4px;
+  background: #fff;
+  color: #b40000;
+  display: grid;
+  place-items: center;
+  font: bold 20px 'Courier New';
+  box-shadow: 1px 2px 2px #0008;
+  z-index: 5;
+}
+
+/* ---------- 底部提示 ---------- */
+.hint {
+  padding: 7px;
+  text-align: center;
+  background: #d8d4c8;
+  border-top: 1px solid #aaa;
+  font-size: 11px;
+}
+
+/* ---------- 胜利弹窗 ---------- */
+.message {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #0008;
+  z-index: 50;
+}
+.message > div {
+  padding: 25px 35px;
+  text-align: center;
+  background: #ece9d8;
+  border: 2px solid #073b80;
+  box-shadow: 0 8px 20px #000;
+}
+.message h2 { color: #0750b8; margin-top: 0; }
+.message a { display: inline-block; margin-left: 8px; }
+
+/* ---------- 小屏适配 ---------- */
+@media (max-width: 700px) {
+  body { padding: 0; }
+  .table { grid-template-columns: repeat(10, 70px); }
+  .game-window { border-radius: 0; }
+}
