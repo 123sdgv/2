@@ -1,1 +1,48 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>蜘蛛纸牌</title><link rel="stylesheet" href="style.css"></head><body><main class="game-window"><header class="titlebar"><span>🕷️ 蜘蛛纸牌</span><a href="../../index.html">×</a></header><nav class="menubar"><span>游戏</span><span>帮助</span></nav><section class="toolbar"><button id="new-game">新游戏</button><button id="deal">发牌</button><span>分数：<b id="score">500</b></span><span>步数：<b id="moves">0</b></span><span>时间：<b id="timer">00:00</b></span></section><section id="table" class="table"></section><section class="hint">单花色模式 · 点击一张牌，再点击目标列；也可以拖动牌组</section></main><div id="message" class="message" hidden><div><h2>恭喜！</h2><p>你完成了蜘蛛纸牌。</p><button id="again">再来一局</button><a href="../../index.html">返回大厅</a></div></div><script src="game.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>蜘蛛纸牌 - Windows Classic Games</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="game-window">
+    <!-- 蓝色标题栏 -->
+    <header class="titlebar">
+      <span>🕷️ 蜘蛛纸牌</span>
+      <a href="../../index.html" title="返回大厅">×</a>
+    </header>
+
+    <nav class="menubar"><span>游戏</span><span>帮助</span></nav>
+
+    <!-- 工具栏：新游戏 / 发牌 / 统计信息 -->
+    <section class="toolbar">
+      <button id="new-game">新游戏</button>
+      <button id="deal">发牌</button>
+      <span>发牌堆：<b id="stock-count">50</b></span>
+      <span>分数：<b id="score">500</b></span>
+      <span>步数：<b id="moves">0</b></span>
+      <span>时间：<b id="timer">00:00</b></span>
+    </section>
+
+    <!-- 牌桌：10 列 -->
+    <section id="table" class="table"></section>
+
+    <!-- 底部提示 -->
+    <section class="hint" id="hint-text">单花色模式 · 点击牌选择，再点击目标列；也可以拖拽</section>
+  </main>
+
+  <!-- 胜利弹窗 -->
+  <div id="message" class="message" hidden>
+    <div>
+      <h2>🎉 恭喜！</h2>
+      <p>你完成了蜘蛛纸牌！</p>
+      <button id="again">再来一局</button>
+      <a href="../../index.html">返回大厅</a>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
