@@ -2,46 +2,72 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>蜘蛛纸牌 - Windows Classic Games</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>蜘蛛纸牌 · Windows Classic Games</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="game-window">
-    <!-- 蓝色标题栏 -->
+    <!-- 标题栏 -->
     <header class="titlebar">
-      <span>🕷️ 蜘蛛纸牌</span>
-      <a href="../../index.html" title="返回大厅">×</a>
+      <span class="tb-title">🕷️ 蜘蛛纸牌</span>
+      <a class="tb-close" href="../../index.html" title="返回大厅">✕</a>
     </header>
 
-    <nav class="menubar"><span>游戏</span><span>帮助</span></nav>
+    <!-- 菜单栏：操作按钮横向平铺（模仿原生菜单，全部可点击） -->
+    <nav class="menubar">
+      <button class="menu-item" id="new-game" title="开始一局新游戏">新游戏</button>
+      <button class="menu-item" id="deal" title="给每列发一张新牌">发牌</button>
+      <button class="menu-item" id="undo" title="撤回上一步操作">撤回</button>
+      <button class="menu-item" id="help" title="查看玩法说明">帮助</button>
+      <span class="menu-sep"></span>
+      <a class="menu-item" href="../../index.html" title="回到游戏大厅">返回大厅</a>
+    </nav>
 
-    <!-- 工具栏：新游戏 / 发牌 / 统计信息 -->
+    <!-- 信息栏 -->
     <section class="toolbar">
-      <button id="new-game">新游戏</button>
-      <button id="deal">发牌</button>
-      <span>发牌堆：<b id="stock-count">50</b></span>
-      <span>分数：<b id="score">500</b></span>
-      <span>步数：<b id="moves">0</b></span>
-      <span>时间：<b id="timer">00:00</b></span>
+      <span>🃏 发牌堆 <b id="stock-count">50</b></span>
+      <span>⭐ 分数 <b id="score">500</b></span>
+      <span>👣 步数 <b id="moves">0</b></span>
+      <span>⏱ 时间 <b id="timer">00:00</b></span>
     </section>
 
-    <!-- 牌桌：10 列 -->
-    <section id="table" class="table"></section>
+    <!-- 牌桌：外层可横向滑动，适配手机竖屏 -->
+    <div class="table-scroll">
+      <section id="table" class="table" aria-label="蜘蛛纸牌牌桌"></section>
+    </div>
 
     <!-- 底部提示 -->
-    <section class="hint" id="hint-text">单花色模式 · 点击牌选择，再点击目标列；也可以拖拽</section>
+    <footer class="hint" id="hint-text">双花色 ♠黑桃 + ♥红心 · 点击选牌再点目标列，也可拖拽或撤回</footer>
   </main>
 
   <!-- 胜利弹窗 -->
   <div id="message" class="message" hidden>
-    <div>
-      <h2>🎉 恭喜！</h2>
-      <p>你完成了蜘蛛纸牌！</p>
-      <button id="again">再来一局</button>
-      <a href="../../index.html">返回大厅</a>
+    <div class="msg-box">
+      <h2>🎉 恭喜通关！</h2>
+      <p id="msg-detail">你完成了蜘蛛纸牌！</p>
+      <p>牌桌已经变成了碎纸烟花 🎆</p>
+      <div class="msg-btns">
+        <button id="again">再来一局</button>
+        <a href="../../index.html">返回大厅</a>
+      </div>
     </div>
   </div>
+
+  <!-- 帮助弹窗 -->
+  <div id="rules" class="message" hidden>
+    <div class="msg-box">
+      <h2>📖 玩法说明</h2>
+      <p>把<b>同一花色</b>的牌按 <b>K→A</b> 顺序排成完整序列，会自动收走，收满 <b>8 组</b> 即胜利。</p>
+      <p>移动：点击一张牌（连同下方同花色连续牌）再点击目标列；也可直接拖拽。<br>
+         空列可放任意牌，非空列只能接<b>同花色、小 1 点</b>的牌。</p>
+      <p>发牌：每列补一张翻开的牌（桌面不能有空列）。撤回：撤销上一步。</p>
+      <div class="msg-btns"><button id="close-rules">知道了</button></div>
+    </div>
+  </div>
+
+  <!-- 胜利特效画布 -->
+  <canvas id="fx"></canvas>
 
   <script src="game.js"></script>
 </body>
