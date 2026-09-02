@@ -70,6 +70,9 @@
     stock = [];
     columns = Array.from({ length: 10 }, () => []);
 
+    // 保险：新游戏开始时确保胜利弹窗隐藏
+    message.hidden = true;
+
     // 生成 104 张牌：13 个点数 × 8 份
     const deck = [];
     for (let copy = 0; copy < 8; copy++) {
