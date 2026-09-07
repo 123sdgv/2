@@ -1,1 +1,52 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Liquid Sort · Winbox</title><link rel="stylesheet" href="style.css"></head><body><main class="app"><header class="top"><a class="back" href="../../index.html">‹</a><div><h1>Liquid Sort</h1><p>Color Delivery</p></div><div class="level">关卡 <b id="level">1</b></div></header><section class="hud"><span>🪙 <b id="coins">90</b></span><span>步数 <b id="moves">0</b></span><button id="reset">↻ 重来</button><button id="undo">↶ 撤回</button></section><section class="deliveries"><div class="delivery-title">今日订单 <small id="orders">0 / 6</small></div><div id="bags" class="bags"></div></section><section id="board" class="board"></section><p id="hint" class="hint">点击一瓶饮料，再点击另一瓶开始倒饮料</p></main><div id="win" class="modal" hidden><div class="modal-card"><div class="confetti">🎉</div><h2>订单完成！</h2><p>所有饮料都分装好了，外卖袋正在送出。</p><button id="next">下一关</button></div></div><script src="game.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Liquid Sort · Winbox</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <!-- 顶栏 -->
+    <header class="top">
+      <a class="back" href="../../index.html" title="返回 Winbox">‹</a>
+      <div>
+        <h1>Liquid Sort</h1>
+        <p>Color Delivery</p>
+      </div>
+      <div class="level">关卡<b id="level">1</b></div>
+    </header>
+
+    <!-- 工具栏 -->
+    <section class="hud">
+      <span>步数 <b id="moves">0</b></span>
+      <button id="reset">↻ 重来</button>
+      <button id="undo">↶ 撤回</button>
+    </section>
+
+    <!-- 外卖袋进度 -->
+    <section class="deliveries">
+      <div class="delivery-title">今日订单 <small id="orders">0 / 6</small></div>
+      <div id="bags" class="bags"></div>
+    </section>
+
+    <!-- 游戏区 -->
+    <section id="board" class="board"></section>
+
+    <p id="hint" class="hint">点击一瓶饮料，再点击另一瓶开始倒饮料</p>
+  </main>
+
+  <!-- 胜利弹窗 -->
+  <div id="win" class="modal" hidden>
+    <div class="modal-card">
+      <div class="confetti">🎉</div>
+      <h2>订单完成！</h2>
+      <p>所有饮料都分装好了，外卖袋正在送出。</p>
+      <button id="next">下一关 🚀</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
