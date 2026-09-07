@@ -20,21 +20,25 @@
   let busy = false;
 
   const snapshot = () => ({
-    tubes: tubes.map(t => [...t]),
+    tubes: tubes.map(t => ({ colors: [...t], done: Boolean(t.done) })),
     moves,
     completed,
     cartonUnlocked
   });
 
-  const restore = (state) => {
-    tubes = state.tubes.map(t => [...t]);
+  const restore = state => {
+    tubes = state.tubes.map(t => {
+      const tube = [...t.colors];
+      tube.done = t.done;
+      return tube;
+    });
     moves = state.moves;
     completed = state.completed;
     cartonUnlocked = state.cartonUnlocked;
     selected = -1;
   };
 
-  const shuffle = (array) => {
+  const shuffle = array => {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
@@ -42,9 +46,7 @@
     return array;
   };
 
-  const isComplete = (tube) =>
-    tube.length === 4 && tube.every(color => color === tube[0]);
-
+  const isComplete = tube => tube.length === 4 && tube.every(color => color === tube[0]);
   const levelColorCount = () => Math.min(3 + Math.floor((level - 1) / 2), 8);
 
   function makeLevel() {
@@ -63,11 +65,14 @@
     }
     shuffle(pool);
     tubes = [];
-    for (let i = 0; i < colorCount; i++) {
-      tubes.push(pool.slice(i * 4, i * 4 + 4));
-    }
-    // 两个空瓶作为缓冲位；每次进入关卡都会重新随机排列
+    for (let i = 0; i < colorCount; i++) tubes.push(pool.slice(i * 4, i * 4 + 4));
     tubes.push([], []);
+
+    // 极少数随机结果可能刚好已经整理好，重新随机一次
+    if (tubes.slice(0, colorCount).every(isComplete)) {
+      makeLevel();
+      return;
+    }
     levelEl.textContent = level;
     showHint('点击一瓶饮料，再点击另一瓶开始倒饮料');
     render();
@@ -75,9 +80,10 @@
 
   function render() {
     board.innerHTML = '';
+    const cartonIndex = Math.floor(tubes.length / 2);
 
     tubes.forEach((tube, index) => {
-      if (level >= 3 && index === Math.floor(tubes.length / 2)) {
+      if (level >= 3 && index === cartonIndex) {
         const carton = document.createElement('button');
         carton.type = 'button';
         carton.className = 'carton' + (cartonUnlocked ? ' open' : '');
@@ -85,10 +91,9 @@
         carton.innerHTML = cartonUnlocked
           ? '<span>🧋</span><small>已解锁</small>'
           : '<span>🔒</span><small>完成一半订单后揭开</small>';
-        carton.addEventListener('click', () => {
-          if (cartonUnlocked) showHint('奶茶盒已打开，隐藏饮料可以参与分类');
-          else showHint('还需要完成一半订单才能打开');
-        });
+        carton.addEventListener('click', () => showHint(
+          cartonUnlocked ? '奶茶盒已打开，继续整理饮料吧' : '还需要完成一半订单才能打开'
+        ));
         board.appendChild(carton);
       }
 
@@ -163,30 +168,14 @@
     const color = from[from.length - 1];
     if (to.length && to[to.length - 1] !== color) return false;
 
-    let amount = 0;
+    // 必须在移动前保存快照，撤回才会回到这一步之前
+    history.push(snapshot());
+
     while (from.length && from[from.length - 1] === color && to.length < 4) {
       to.push(from.pop());
-      amount++;
     }
-    if (!amount) return false;
-
-    // 必须在改变牌面前保存，撤回才会回到真正的上一步
-    history.push(snapshotBeforeMove(fromIndex, toIndex));
     moves++;
     return true;
-  }
-
-  // 从当前变化反推出操作前状态，避免把已经倒完的状态存入历史
-  function snapshotBeforeMove(fromIndex, toIndex) {
-    const current = snapshot();
-    const source = current.tubes[fromIndex];
-    const target = current.tubes[toIndex];
-    const color = target[target.length - 1];
-    let amount = 0;
-    while (target.length - amount > 0 && target[target.length - 1 - amount] === color) amount++;
-    while (amount > 0 && source.length < 4 && source[source.length] === color) amount--;
-    // 直接由本次移动前的复制状态生成更可靠，调用方会在实际移动前覆盖此方法
-    return current;
   }
 
   function checkCompleted() {
@@ -206,6 +195,7 @@
       if (bottle) bottle.classList.add('pour');
     });
     showHint(cartonUnlocked ? '订单完成，奶茶盒已解锁！' : '订单完成，饮料已装袋！');
+
     setTimeout(() => {
       render();
       if (completed >= levelColorCount()) {
