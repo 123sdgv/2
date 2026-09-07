@@ -105,10 +105,10 @@
 
       const layers = document.createElement('span');
       layers.className = 'layers';
-      tube.forEach(color => {
+      tube.forEach(colorIndex => {
         const liquid = document.createElement('span');
         liquid.className = 'liquid';
-        liquid.style.background = liquidGradient(color);
+        liquid.style.background = liquidGradient(COLORS[colorIndex]); // 用真实色值
         layers.appendChild(liquid);
       });
       bottle.appendChild(layers);
@@ -165,16 +165,17 @@
       showHint('这瓶已经满了');
       return;
     }
-    const color = from[from.length - 1];
-    if (to.length && to[to.length - 1] !== color) {
+    const colorIndex = from[from.length - 1];
+    if (to.length && to[to.length - 1] !== colorIndex) {
       showHint('只能倒入空瓶或相同颜色的饮料');
       return;
     }
+    const colorHex = COLORS[colorIndex]; // 真实色值
 
     // 计算要倒几层（相同顶色连续 + 目标空间）
     let amount = 0;
     while (amount < from.length &&
-           from[from.length - 1 - amount] === color &&
+           from[from.length - 1 - amount] === colorIndex &&
            to.length + amount < 4) {
       amount++;
     }
@@ -200,7 +201,7 @@
     stream.style.left = (toRect.left + toRect.width / 2 - boardRect.left - 6.5) + 'px';
     stream.style.top = (toRect.top - boardRect.top - 46) + 'px';
     stream.style.height = '0px';
-    stream.style.background = `linear-gradient(180deg, ${color}, ${color})`;
+    stream.style.background = `linear-gradient(180deg, ${colorHex}, ${colorHex})`;
     board.appendChild(stream);
     requestAnimationFrame(() => {
       stream.style.opacity = '1';
@@ -211,7 +212,7 @@
     // 3. 目标瓶液面上升（预加将要倒入的层）
     const rise = document.createElement('span');
     rise.className = 'liquid rise';
-    rise.style.background = liquidGradient(color);
+    rise.style.background = liquidGradient(colorHex);
     rise.style.height = '0%';
     toEl.querySelector('.layers').appendChild(rise);
     requestAnimationFrame(() => {
