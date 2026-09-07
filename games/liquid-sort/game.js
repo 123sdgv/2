@@ -1,1 +1,246 @@
-(()=>{'use strict';const board=document.querySelector('#board'),hint=document.querySelector('#hint'),movesEl=document.querySelector('#moves'),coinsEl=document.querySelector('#coins'),ordersEl=document.querySelector('#orders'),bagsEl=document.querySelector('#bags'),win=document.querySelector('#win'),levelEl=document.querySelector('#level');const COLORS=['#ff5964','#ffd83d','#39d98a','#36a8ff','#a66cff','#ff8a26','#ef6fd4','#19c3c8'];let tubes=[],selected=-1,moves=0,history=[],level=1,orders=0;const save=()=>history.push({tubes:JSON.stringify(tubes),moves,orders});const clone=()=>tubes.map(t=>[...t]);function makeLevel(){const count=Math.min(3+Math.floor((level-1)/2),6),pool=[];for(let c=0;c<count;c++)for(let i=0;i<4;i++)pool.push(c);pool.sort(()=>Math.random()-.5);tubes=[];for(let i=0;i<count;i++)tubes.push(pool.slice(i*4,i*4+4));tubes.push([],[]);if(tubes.every(t=>t.length===4&&t.every(x=>x===t[0])))return makeLevel();selected=-1;moves=0;orders=0;history=[];win.hidden=true;levelEl.textContent=level;render()}function render(){board.innerHTML='';tubes.forEach((tube,i)=>{if(i===Math.floor(tubes.length/2)&&level>=3){const carton=document.createElement('div');carton.className='carton';carton.title='隐藏饮料盒';carton.innerHTML='<small>完成一半订单后揭开</small>';carton.onclick=()=>{if(orders>=Math.ceil(tubes.length/2))carton.remove();else flash('还需要完成一半订单才能打开');};board.appendChild(carton)}const b=document.createElement('div');b.className='bottle'+(selected===i?' selected':'');b.dataset.i=i;const layers=document.createElement('div');layers.className='layers';tube.forEach(c=>{const l=document.createElement('div');l.className='liquid';l.style.background=`linear-gradient(90deg,${COLORS[c]},#ffffff33 48%,${COLORS[c]})`;layers.appendChild(l)});b.appendChild(layers);b.onclick=()=>tap(i);board.appendChild(b)});movesEl.textContent=moves;ordersEl.textContent=`${orders} / ${tubes.filter(t=>t.length===4&&t.every(x=>x===t[0])).length+orders}`;bagsEl.innerHTML='';for(let i=0;i<orders;i++){const bag=document.createElement('div');bag.className='bag';const drink=document.createElement('div');drink.className='drink';drink.style.background=COLORS[i%COLORS.length];bag.appendChild(drink);bagsEl.appendChild(bag)}}function tap(i){if(selected<0){if(!tubes[i].length){flash('先选择一瓶有饮料的瓶子');return}selected=i;flash('现在选择要倒入的瓶子');render();return}if(selected===i){selected=-1;render();return}if(pour(selected,i)){selected=-1;render();check()}else{flash('只能倒入空瓶或相同颜色的饮料');selected=-1;render()}}function pour(a,b){const from=tubes[a],to=tubes[b];if(!from.length||to.length>=4)return false;const color=from.at(-1);if(to.length&&to.at(-1)!==color)return false;let n=0;while(from.length&&from.at(-1)===color&&to.length+n<4){to.push(from.pop());n++}if(!n)return false;save();moves++;return true}function check(){tubes.forEach((t,i)=>{if(t.length===4&&t.every(c=>c===t[0])&&!t.done){t.done=true;orders++;setTimeout(()=>{const b=document.querySelector(`.bottle[data-i="${i}"]`);if(b)b.classList.add('pour');},0);setTimeout(()=>{render();if(orders>=tubes.filter(x=>x.length===4).length){win.hidden=false}},550)}});render()}function undo(){const s=history.pop();if(!s){flash('没有可以撤回的步骤');return}tubes=JSON.parse(s.tubes);moves=s.moves;orders=s.orders;selected=-1;render()}function flash(t){hint.textContent=t;clearTimeout(flash.t);flash.t=setTimeout(()=>hint.textContent='点击一瓶饮料，再点击另一瓶开始倒饮料',1900)}document.querySelector('#reset').onclick=makeLevel;document.querySelector('#undo').onclick=undo;document.querySelector('#next').onclick=()=>{level++;makeLevel()};makeLevel()})();
+(() => {
+  'use strict';
+
+  const board = document.querySelector('#board');
+  const hint = document.querySelector('#hint');
+  const movesEl = document.querySelector('#moves');
+  const ordersEl = document.querySelector('#orders');
+  const bagsEl = document.querySelector('#bags');
+  const win = document.querySelector('#win');
+  const levelEl = document.querySelector('#level');
+  const COLORS = ['#ff5964', '#ffd83d', '#39d98a', '#36a8ff', '#a66cff', '#ff8a26', '#ef6fd4', '#19c3c8'];
+
+  let tubes = [];
+  let selected = -1;
+  let moves = 0;
+  let history = [];
+  let level = 1;
+  let completed = 0;
+  let cartonUnlocked = false;
+  let busy = false;
+
+  const snapshot = () => ({
+    tubes: tubes.map(t => [...t]),
+    moves,
+    completed,
+    cartonUnlocked
+  });
+
+  const restore = (state) => {
+    tubes = state.tubes.map(t => [...t]);
+    moves = state.moves;
+    completed = state.completed;
+    cartonUnlocked = state.cartonUnlocked;
+    selected = -1;
+  };
+
+  const shuffle = (array) => {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  };
+
+  const isComplete = (tube) =>
+    tube.length === 4 && tube.every(color => color === tube[0]);
+
+  const levelColorCount = () => Math.min(3 + Math.floor((level - 1) / 2), 8);
+
+  function makeLevel() {
+    busy = false;
+    selected = -1;
+    moves = 0;
+    completed = 0;
+    cartonUnlocked = level < 3;
+    history = [];
+    win.hidden = true;
+
+    const colorCount = levelColorCount();
+    const pool = [];
+    for (let color = 0; color < colorCount; color++) {
+      for (let i = 0; i < 4; i++) pool.push(color);
+    }
+    shuffle(pool);
+    tubes = [];
+    for (let i = 0; i < colorCount; i++) {
+      tubes.push(pool.slice(i * 4, i * 4 + 4));
+    }
+    // 两个空瓶作为缓冲位；每次进入关卡都会重新随机排列
+    tubes.push([], []);
+    levelEl.textContent = level;
+    showHint('点击一瓶饮料，再点击另一瓶开始倒饮料');
+    render();
+  }
+
+  function render() {
+    board.innerHTML = '';
+
+    tubes.forEach((tube, index) => {
+      if (level >= 3 && index === Math.floor(tubes.length / 2)) {
+        const carton = document.createElement('button');
+        carton.type = 'button';
+        carton.className = 'carton' + (cartonUnlocked ? ' open' : '');
+        carton.title = cartonUnlocked ? '奶茶盒已打开' : '完成一半订单后解锁';
+        carton.innerHTML = cartonUnlocked
+          ? '<span>🧋</span><small>已解锁</small>'
+          : '<span>🔒</span><small>完成一半订单后揭开</small>';
+        carton.addEventListener('click', () => {
+          if (cartonUnlocked) showHint('奶茶盒已打开，隐藏饮料可以参与分类');
+          else showHint('还需要完成一半订单才能打开');
+        });
+        board.appendChild(carton);
+      }
+
+      const bottle = document.createElement('button');
+      bottle.type = 'button';
+      bottle.className = 'bottle' + (selected === index ? ' selected' : '');
+      bottle.dataset.i = index;
+      bottle.setAttribute('aria-label', `第 ${index + 1} 瓶`);
+
+      const layers = document.createElement('span');
+      layers.className = 'layers';
+      tube.forEach(color => {
+        const liquid = document.createElement('span');
+        liquid.className = 'liquid';
+        liquid.style.background = `linear-gradient(90deg, ${COLORS[color]}, #ffffff44 48%, ${COLORS[color]})`;
+        layers.appendChild(liquid);
+      });
+      bottle.appendChild(layers);
+      bottle.addEventListener('click', () => tap(index));
+      board.appendChild(bottle);
+    });
+
+    movesEl.textContent = moves;
+    ordersEl.textContent = `${completed} / ${levelColorCount()}`;
+    bagsEl.innerHTML = '';
+    for (let i = 0; i < completed; i++) {
+      const bag = document.createElement('span');
+      bag.className = 'bag';
+      const drink = document.createElement('span');
+      drink.className = 'drink';
+      drink.style.background = COLORS[i % COLORS.length];
+      bag.appendChild(drink);
+      bagsEl.appendChild(bag);
+    }
+  }
+
+  function tap(index) {
+    if (busy) return;
+    if (selected < 0) {
+      if (!tubes[index].length) {
+        showHint('先选择一瓶有饮料的瓶子');
+        return;
+      }
+      selected = index;
+      showHint('现在选择要倒入的瓶子');
+      render();
+      return;
+    }
+    if (selected === index) {
+      selected = -1;
+      render();
+      return;
+    }
+
+    const source = selected;
+    if (!pour(source, index)) {
+      showHint('只能倒入空瓶或相同颜色的饮料');
+      selected = -1;
+      render();
+      return;
+    }
+    selected = -1;
+    render();
+    checkCompleted();
+  }
+
+  function pour(fromIndex, toIndex) {
+    const from = tubes[fromIndex];
+    const to = tubes[toIndex];
+    if (!from.length || to.length >= 4) return false;
+
+    const color = from[from.length - 1];
+    if (to.length && to[to.length - 1] !== color) return false;
+
+    let amount = 0;
+    while (from.length && from[from.length - 1] === color && to.length < 4) {
+      to.push(from.pop());
+      amount++;
+    }
+    if (!amount) return false;
+
+    // 必须在改变牌面前保存，撤回才会回到真正的上一步
+    history.push(snapshotBeforeMove(fromIndex, toIndex));
+    moves++;
+    return true;
+  }
+
+  // 从当前变化反推出操作前状态，避免把已经倒完的状态存入历史
+  function snapshotBeforeMove(fromIndex, toIndex) {
+    const current = snapshot();
+    const source = current.tubes[fromIndex];
+    const target = current.tubes[toIndex];
+    const color = target[target.length - 1];
+    let amount = 0;
+    while (target.length - amount > 0 && target[target.length - 1 - amount] === color) amount++;
+    while (amount > 0 && source.length < 4 && source[source.length] === color) amount--;
+    // 直接由本次移动前的复制状态生成更可靠，调用方会在实际移动前覆盖此方法
+    return current;
+  }
+
+  function checkCompleted() {
+    const newlyComplete = [];
+    tubes.forEach((tube, index) => {
+      if (isComplete(tube) && !tube.done) {
+        tube.done = true;
+        newlyComplete.push(index);
+      }
+    });
+    if (!newlyComplete.length) return;
+
+    completed += newlyComplete.length;
+    if (completed >= Math.ceil(levelColorCount() / 2)) cartonUnlocked = true;
+    newlyComplete.forEach(index => {
+      const bottle = document.querySelector(`.bottle[data-i="${index}"]`);
+      if (bottle) bottle.classList.add('pour');
+    });
+    showHint(cartonUnlocked ? '订单完成，奶茶盒已解锁！' : '订单完成，饮料已装袋！');
+    setTimeout(() => {
+      render();
+      if (completed >= levelColorCount()) {
+        busy = true;
+        setTimeout(() => { win.hidden = false; busy = false; }, 350);
+      }
+    }, 550);
+  }
+
+  function undo() {
+    if (busy) return;
+    const state = history.pop();
+    if (!state) {
+      showHint('没有可以撤回的步骤');
+      return;
+    }
+    restore(state);
+    render();
+    showHint('已撤回一步');
+  }
+
+  function showHint(text) {
+    hint.textContent = text;
+    clearTimeout(showHint.timer);
+    showHint.timer = setTimeout(() => {
+      hint.textContent = '点击一瓶饮料，再点击另一瓶开始倒饮料';
+    }, 2200);
+  }
+
+  document.querySelector('#reset').addEventListener('click', makeLevel);
+  document.querySelector('#undo').addEventListener('click', undo);
+  document.querySelector('#next').addEventListener('click', () => {
+    level++;
+    makeLevel();
+  });
+
+  makeLevel();
+})();
