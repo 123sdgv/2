@@ -1,6 +1,14 @@
 (() => {
   'use strict';
 
+  /* ============================================================
+     Liquid Sort · 倒饮料
+     - 点击源瓶 -> 点击目标瓶 -> 播放倾倒动画 -> 更新数据
+     - 倒水动画：源瓶倾斜移动 + 水流柱 + 目标瓶液面上升
+     - 每瓶 4 层，相同顶色可倒，空瓶可倒
+     - 关卡进度保存在 localStorage，下次进入继续
+     ============================================================ */
+
   const board = document.querySelector('#board');
   const hint = document.querySelector('#hint');
   const movesEl = document.querySelector('#moves');
@@ -8,22 +16,24 @@
   const bagsEl = document.querySelector('#bags');
   const win = document.querySelector('#win');
   const levelEl = document.querySelector('#level');
+
   const COLORS = ['#ff5964', '#ffd83d', '#39d98a', '#36a8ff', '#a66cff', '#ff8a26', '#ef6fd4', '#19c3c8'];
+  const STORE_KEY = 'liquid-sort-level';
 
   let tubes = [];
   let selected = -1;
   let moves = 0;
   let history = [];
-  let level = 1;
   let completed = 0;
-  let cartonUnlocked = false;
-  let busy = false;
+  let busy = false;      // 动画进行中，禁止新操作
+
+  // 读取上次的关卡进度
+  let level = Math.max(1, parseInt(localStorage.getItem(STORE_KEY) || '1', 10) || 1);
 
   const snapshot = () => ({
     tubes: tubes.map(t => ({ colors: [...t], done: Boolean(t.done) })),
     moves,
-    completed,
-    cartonUnlocked
+    completed
   });
 
   const restore = state => {
@@ -34,7 +44,6 @@
     });
     moves = state.moves;
     completed = state.completed;
-    cartonUnlocked = state.cartonUnlocked;
     selected = -1;
   };
 
@@ -48,13 +57,15 @@
 
   const isComplete = tube => tube.length === 4 && tube.every(color => color === tube[0]);
   const levelColorCount = () => Math.min(3 + Math.floor((level - 1) / 2), 8);
+  const liquidGradient = color =>
+    `linear-gradient(90deg, ${color}, #ffffff44 48%, ${color})`;
 
+  /* ================= 新关卡（随机） ================= */
   function makeLevel() {
     busy = false;
     selected = -1;
     moves = 0;
     completed = 0;
-    cartonUnlocked = level < 3;
     history = [];
     win.hidden = true;
 
@@ -64,39 +75,28 @@
       for (let i = 0; i < 4; i++) pool.push(color);
     }
     shuffle(pool);
+
     tubes = [];
     for (let i = 0; i < colorCount; i++) tubes.push(pool.slice(i * 4, i * 4 + 4));
-    tubes.push([], []);
+    tubes.push([], []); // 两个空瓶
 
-    // 极少数随机结果可能刚好已经整理好，重新随机一次
+    // 极小概率首局已排好，重新洗
     if (tubes.slice(0, colorCount).every(isComplete)) {
       makeLevel();
       return;
     }
+
+    localStorage.setItem(STORE_KEY, String(level)); // 记住关卡
     levelEl.textContent = level;
     showHint('点击一瓶饮料，再点击另一瓶开始倒饮料');
     render();
   }
 
+  /* ================= 渲染 ================= */
   function render() {
     board.innerHTML = '';
-    const cartonIndex = Math.floor(tubes.length / 2);
 
     tubes.forEach((tube, index) => {
-      if (level >= 3 && index === cartonIndex) {
-        const carton = document.createElement('button');
-        carton.type = 'button';
-        carton.className = 'carton' + (cartonUnlocked ? ' open' : '');
-        carton.title = cartonUnlocked ? '奶茶盒已打开' : '完成一半订单后解锁';
-        carton.innerHTML = cartonUnlocked
-          ? '<span>🧋</span><small>已解锁</small>'
-          : '<span>🔒</span><small>完成一半订单后揭开</small>';
-        carton.addEventListener('click', () => showHint(
-          cartonUnlocked ? '奶茶盒已打开，继续整理饮料吧' : '还需要完成一半订单才能打开'
-        ));
-        board.appendChild(carton);
-      }
-
       const bottle = document.createElement('button');
       bottle.type = 'button';
       bottle.className = 'bottle' + (selected === index ? ' selected' : '');
@@ -108,7 +108,7 @@
       tube.forEach(color => {
         const liquid = document.createElement('span');
         liquid.className = 'liquid';
-        liquid.style.background = `linear-gradient(90deg, ${COLORS[color]}, #ffffff44 48%, ${COLORS[color]})`;
+        liquid.style.background = liquidGradient(color);
         layers.appendChild(liquid);
       });
       bottle.appendChild(layers);
@@ -130,6 +130,7 @@
     }
   }
 
+  /* ================= 点击处理 ================= */
   function tap(index) {
     if (busy) return;
     if (selected < 0) {
@@ -149,35 +150,89 @@
     }
 
     const source = selected;
-    if (!pour(source, index)) {
-      showHint('只能倒入空瓶或相同颜色的饮料');
-      selected = -1;
-      render();
-      return;
-    }
     selected = -1;
     render();
-    checkCompleted();
+    pourWithAnimation(source, index);
   }
 
-  function pour(fromIndex, toIndex) {
-    const from = tubes[fromIndex];
-    const to = tubes[toIndex];
-    if (!from.length || to.length >= 4) return false;
+  /* ================= 倾倒（带动画） ================= */
+  function pourWithAnimation(fromIdx, toIdx) {
+    const from = tubes[fromIdx];
+    const to = tubes[toIdx];
 
-    const color = from[from.length - 1];
-    if (to.length && to[to.length - 1] !== color) return false;
-
-    // 必须在移动前保存快照，撤回才会回到这一步之前
-    history.push(snapshot());
-
-    while (from.length && from[from.length - 1] === color && to.length < 4) {
-      to.push(from.pop());
+    // 合法性：源瓶有液体 / 目标有空间 / 空瓶或顶色相同
+    if (!from.length || to.length >= 4) {
+      showHint('这瓶已经满了');
+      return;
     }
-    moves++;
-    return true;
+    const color = from[from.length - 1];
+    if (to.length && to[to.length - 1] !== color) {
+      showHint('只能倒入空瓶或相同颜色的饮料');
+      return;
+    }
+
+    // 计算要倒几层（相同顶色连续 + 目标空间）
+    let amount = 0;
+    while (amount < from.length &&
+           from[from.length - 1 - amount] === color &&
+           to.length + amount < 4) {
+      amount++;
+    }
+    if (!amount) {
+      showHint('没有可以倒的饮料');
+      return;
+    }
+
+    const fromEl = board.querySelector(`.bottle[data-i="${fromIdx}"]`);
+    const toEl = board.querySelector(`.bottle[data-i="${toIdx}"]`);
+
+    // 1. 源瓶平移+倾斜到目标瓶上方
+    const fromRect = fromEl.getBoundingClientRect();
+    const toRect = toEl.getBoundingClientRect();
+    const dx = (toRect.left + toRect.width / 2) - (fromRect.left + fromRect.width / 2);
+    fromEl.style.setProperty('--dx', dx + 'px');
+    fromEl.classList.add('pouring');
+
+    // 2. 目标瓶上方出现水流柱
+    const boardRect = board.getBoundingClientRect();
+    const stream = document.createElement('span');
+    stream.className = 'stream';
+    stream.style.left = (toRect.left + toRect.width / 2 - boardRect.left - 6.5) + 'px';
+    stream.style.top = (toRect.top - boardRect.top - 46) + 'px';
+    stream.style.height = '0px';
+    stream.style.background = `linear-gradient(180deg, ${color}, ${color})`;
+    board.appendChild(stream);
+    requestAnimationFrame(() => {
+      stream.style.opacity = '1';
+      stream.style.height = '12px';
+    });
+    setTimeout(() => { stream.style.height = '46px'; }, 40);
+
+    // 3. 目标瓶液面上升（预加将要倒入的层）
+    const rise = document.createElement('span');
+    rise.className = 'liquid rise';
+    rise.style.background = liquidGradient(color);
+    rise.style.height = '0%';
+    toEl.querySelector('.layers').appendChild(rise);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        rise.style.height = (amount * 25) + '%';
+      });
+    });
+
+    // 4. 动画结束后真正更新数据
+    busy = true;
+    setTimeout(() => {
+      history.push(snapshot());          // 记录操作前状态
+      for (let i = 0; i < amount; i++) to.push(from.pop());
+      moves++;
+      busy = false;
+      render();
+      checkCompleted();
+    }, 620);
   }
 
+  /* ================= 完成检测 ================= */
   function checkCompleted() {
     const newlyComplete = [];
     tubes.forEach((tube, index) => {
@@ -189,22 +244,34 @@
     if (!newlyComplete.length) return;
 
     completed += newlyComplete.length;
-    if (completed >= Math.ceil(levelColorCount() / 2)) cartonUnlocked = true;
+
+    // 完成瓶上抛消失 + 外卖袋弹出
     newlyComplete.forEach(index => {
       const bottle = document.querySelector(`.bottle[data-i="${index}"]`);
       if (bottle) bottle.classList.add('pour');
     });
-    showHint(cartonUnlocked ? '订单完成，奶茶盒已解锁！' : '订单完成，饮料已装袋！');
+    const bag = document.createElement('span');
+    bag.className = 'bag fill';
+    const drink = document.createElement('span');
+    drink.className = 'drink';
+    drink.style.background = COLORS[(completed - 1) % COLORS.length];
+    bag.appendChild(drink);
+    bagsEl.appendChild(bag);
+
+    showHint('订单完成，饮料已装袋！');
 
     setTimeout(() => {
       render();
       if (completed >= levelColorCount()) {
-        busy = true;
-        setTimeout(() => { win.hidden = false; busy = false; }, 350);
+        // 最后的外卖袋离开
+        const last = bagsEl.lastElementChild;
+        if (last) last.classList.add('away');
+        setTimeout(() => { win.hidden = false; }, 700);
       }
-    }, 550);
+    }, 560);
   }
 
+  /* ================= 撤回 ================= */
   function undo() {
     if (busy) return;
     const state = history.pop();
@@ -217,6 +284,7 @@
     showHint('已撤回一步');
   }
 
+  /* ================= 提示 ================= */
   function showHint(text) {
     hint.textContent = text;
     clearTimeout(showHint.timer);
@@ -225,12 +293,18 @@
     }, 2200);
   }
 
-  document.querySelector('#reset').addEventListener('click', makeLevel);
+  /* ================= 事件绑定 ================= */
+  document.querySelector('#reset').addEventListener('click', () => {
+    busy = false;
+    makeLevel();
+    showHint('本关已重新生成');
+  });
   document.querySelector('#undo').addEventListener('click', undo);
   document.querySelector('#next').addEventListener('click', () => {
     level++;
     makeLevel();
   });
 
+  /* ================= 启动 ================= */
   makeLevel();
 })();
