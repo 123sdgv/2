@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>扫雷 · Winbox</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="mx-window">
+    <!-- 蓝色渐变标题栏 -->
+    <header class="titlebar">
+      <span class="tb-title">💣 扫雷</span>
+      <a class="tb-close" href="../../index.html" title="返回 Winbox">✕</a>
+    </header>
+
+    <!-- 菜单栏 -->
+    <nav class="menubar">
+      <span class="menu-item">游戏</span>
+      <span class="menu-item">帮助</span>
+      <span class="menu-sep"></span>
+      <span class="menu-item level-info">关卡 <b id="level">1</b></span>
+    </nav>
+
+    <!-- 顶部 LED 面板：雷数 | 笑脸 | 时间 -->
+    <section class="led-panel">
+      <div class="led" id="mines">010</div>
+      <button id="face" class="face" title="重新开始本关">😀</button>
+      <div class="led" id="time">000</div>
+    </section>
+
+    <!-- 操作栏 -->
+    <section class="controls">
+      <button id="flag-mode" class="ctrl-btn">🚩 插旗模式</button>
+      <button id="restart" class="ctrl-btn">↻ 重启本关</button>
+      <a class="ctrl-btn back" href="../../index.html">‹ 返回</a>
+    </section>
+
+    <!-- 雷区 -->
+    <section id="board" class="board"></section>
+
+    <p id="hint" class="hint">点击翻开格子 · 右键或插旗模式标记地雷 · 首次点击一定安全</p>
+  </div>
+
+  <!-- 胜利弹窗 -->
+  <div id="win" class="modal" hidden>
+    <div class="modal-card">
+      <div class="confetti">🏆</div>
+      <h2>扫雷成功！</h2>
+      <p id="win-detail">本关用时 00 秒。</p>
+      <button id="next">下一关 ▶</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
