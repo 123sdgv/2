@@ -21,19 +21,19 @@ window.GAMES = [
     available: true
   },
   {
-    id: 'solitaire',
-    name: '经典纸牌',
-    en: 'Solitaire',
-    icon: '♠️',
-    url: 'games/solitaire/index.html',
-    available: false
-  },
-  {
     id: 'minesweeper',
     name: '扫雷',
     en: 'Minesweeper',
     icon: '💣',
     url: 'games/minesweeper/index.html',
+    available: true
+  },
+  {
+    id: 'solitaire',
+    name: '经典纸牌',
+    en: 'Solitaire',
+    icon: '♠️',
+    url: 'games/solitaire/index.html',
     available: false
   }
 ];
