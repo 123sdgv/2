@@ -3,10 +3,9 @@
 
   /* ============================================================
      扫雷 · Windows 经典规则
-     - 点击翻开 · 右键或插旗模式标记地雷
-     - 显示周边雷数，数字颜色与经典版一致
-     - 关卡越往后格子越大、雷越多
-     - 关卡进度存入 localStorage，下次进入继续
+     - 点击翻开 · 右键 / 插旗模式标记地雷
+     - 首次点击安全（点击处及 8 邻域不埋雷）
+     - 关卡越往后格子越大、雷越多，进度存入 localStorage
      ============================================================ */
 
   const board = document.getElementById('board');
@@ -41,7 +40,7 @@
   let level = Math.max(1, parseInt(localStorage.getItem(STORE_KEY) || '1', 10) || 1);
 
   let rows = 9, cols = 9, mineCount = 10;
-  let grid = [];            // 每格 {mine, opened, flag, adj}
+  let grid = [];            // 每格 {mine, opened, flag, adj, hit}
   let state = 'ready';      // ready | playing | win | lose
   let flags = 0;
   let seconds = 0;
@@ -57,6 +56,17 @@
     return TABLE[Math.min(lv, TABLE.length) - 1];
   }
 
+  /* 生成空场（无雷，全部未翻开）——保证首屏和首次点击都有合法格子对象 */
+  function buildEmptyGrid() {
+    const g = [];
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        g[idx(r, c)] = { mine: false, opened: false, flag: false, adj: 0, hit: false };
+      }
+    }
+    return g;
+  }
+
   /* ================= 初始化一关 ================= */
   function newLevel(lv) {
     level = lv;
@@ -67,6 +77,7 @@
     flags = 0;
     seconds = 0;
     openedCount = 0;
+    grid = buildEmptyGrid();       // 关键：每次开新局都重建空场
     if (timerId) clearInterval(timerId);
     timerId = null;
     faceBtn.textContent = FACE.ok;
@@ -80,12 +91,10 @@
     render();
   }
 
-  // 首次点击后铺雷（保证点击位置及其周围无雷）
+  /* 首次点击后铺雷（保证点击位置及其周围无雷） */
   function placeMines(safeR, safeC) {
-    grid = [];
     const cells = [];
     for (let i = 0; i < rows * cols; i++) cells.push(i);
-    // 移除安全区（点击处 + 8 邻域）
     const safe = new Set();
     for (let dr = -1; dr <= 1; dr++) {
       for (let dc = -1; dc <= 1; dc++) {
@@ -94,33 +103,36 @@
       }
     }
     const candidates = cells.filter(i => !safe.has(i));
-    // 洗牌取前 mineCount 个
-    for (let i = candidates.length - 1; i > 0; i--) {
+    // 注意：安全区外的格子可能不够雷数（极小时），兜底直接全盘选
+    const pool = candidates.length >= mineCount ? candidates : cells;
+    for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+      [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    const mines = new Set(candidates.slice(0, mineCount));
+    const mines = new Set(pool.slice(0, mineCount));
 
+    const g = [];
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const isMine = mines.has(idx(r, c));
-        grid[idx(r, c)] = { mine: isMine, opened: false, flag: false, adj: 0 };
+        g[idx(r, c)] = { mine: isMine, opened: false, flag: false, adj: 0, hit: false };
       }
     }
     // 计算周边雷数
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        if (grid[idx(r, c)].mine) continue;
+        if (g[idx(r, c)].mine) continue;
         let n = 0;
         for (let dr = -1; dr <= 1; dr++) {
           for (let dc = -1; dc <= 1; dc++) {
             const rr = r + dr, cc = c + dc;
-            if (rr >= 0 && rr < rows && cc >= 0 && cc < cols && grid[idx(rr, cc)].mine) n++;
+            if (rr >= 0 && rr < rows && cc >= 0 && cc < cols && g[idx(rr, cc)].mine) n++;
           }
         }
-        grid[idx(r, c)].adj = n;
+        g[idx(r, c)].adj = n;
       }
     }
+    grid = g;
   }
 
   /* ================= 渲染 ================= */
@@ -135,12 +147,13 @@
         btn.className = 'cell';
         btn.dataset.r = r;
         btn.dataset.c = c;
+
         if (cell.opened) {
           btn.classList.add('revealed');
           if (cell.mine) {
             btn.textContent = '💣';
             if (cell.hit) btn.classList.add('mine-hit');
-            else if (state === 'lose') btn.classList.add('mine-shown');
+            else btn.classList.add('mine-shown');
           } else if (cell.adj > 0) {
             btn.textContent = cell.adj;
             btn.classList.add(NUM_COLORS[cell.adj]);
@@ -151,9 +164,16 @@
           btn.textContent = '🚩';
         }
 
-        btn.addEventListener('click', () => openCell(r, c));
+        // 单击统一分发：插旗模式 -> 插旗，否则 -> 翻开（避免双触发）
+        btn.addEventListener('click', () => {
+          if (state === 'win' || state === 'lose') return;
+          if (flagMode) toggleFlag(r, c);
+          else openCell(r, c);
+        });
+        // 右键插旗（桌面端）
         btn.addEventListener('contextmenu', (e) => {
           e.preventDefault();
+          if (state === 'win' || state === 'lose') return;
           toggleFlag(r, c);
         });
         board.appendChild(btn);
@@ -165,10 +185,8 @@
   /* ================= 翻开 ================= */
   function openCell(r, c) {
     if (state === 'win' || state === 'lose') return;
-    const cell = grid[idx(r, c)];
-    if (cell.opened || cell.flag) return;
 
-    // 首次点击：开始计时并铺雷
+    // 首次点击：先铺雷（点击处安全），再取当前格
     if (state === 'ready') {
       state = 'playing';
       placeMines(r, c);
@@ -178,38 +196,46 @@
       }, 1000);
     }
 
+    const cell = grid[idx(r, c)];
+    if (cell.opened || cell.flag) return;
+
     if (cell.mine) {
-      // 踩雷：游戏结束
       cell.hit = true;
-      revealAllMines();
+      for (let rr = 0; rr < rows; rr++) {
+        for (let cc = 0; cc < cols; cc++) {
+          if (grid[idx(rr, cc)].mine && !grid[idx(rr, cc)].opened) {
+            grid[idx(rr, cc)].opened = true; // 显示所有雷（不计入 openedCount）
+          }
+        }
+      }
       state = 'lose';
       if (timerId) clearInterval(timerId);
       faceBtn.textContent = FACE.lose;
       hint.textContent = '踩到地雷了！点击笑脸重新开始本关';
       render();
+      loseSound();
       return;
     }
 
-    // 空白格展开
     floodOpen(r, c);
     faceBtn.textContent = FACE.pressed;
     setTimeout(() => {
       if (state === 'playing') faceBtn.textContent = FACE.ok;
     }, 120);
 
-    // 胜利判定
     if (openedCount === rows * cols - mineCount) {
       winLevel();
     }
     render();
   }
 
+  /* 从空白格开始连锁展开 */
   function floodOpen(r, c) {
     const stack = [[r, c]];
     while (stack.length) {
       const [cr, cc] = stack.pop();
       const cell = grid[idx(cr, cc)];
-      if (cell.opened || cell.mine || cell.flag) continue;
+      if (!cell || cell.opened || cell.mine || cell.flag) continue;
       cell.opened = true;
       openedCount++;
       if (cell.adj === 0) {
@@ -228,12 +254,8 @@
 
   /* ================= 插旗 ================= */
   function toggleFlag(r, c) {
-    if (state === 'win' || state === 'lose' || state === 'ready' && !grid.length) {
-      if (state !== 'ready') return;
-    }
-    if (grid.length === 0) return; // 还没铺雷不能插旗
     const cell = grid[idx(r, c)];
-    if (cell.opened) return;
+    if (!cell || cell.opened) return;
     cell.flag = !cell.flag;
     flags += cell.flag ? 1 : -1;
     clickSound();
@@ -241,23 +263,12 @@
   }
 
   /* ================= 胜负 ================= */
-  function revealAllMines() {
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const cell = grid[idx(r, c)];
-        if (cell.mine && !cell.opened) {
-          cell.opened = true; // 显示所有雷（不参与已翻统计）
-        }
-      }
-    }
-  }
-
   function winLevel() {
     state = 'win';
     if (timerId) clearInterval(timerId);
     faceBtn.textContent = FACE.win;
     winDetail.textContent = `本关用时 ${seconds} 秒，难度 Lv.${level}`;
-    setTimeout(() => { win.hidden = false; }, 400);
+    setTimeout(() => { win.hidden = false; }, 350);
     winSound();
   }
 
@@ -282,6 +293,7 @@
   }
   const clickSound = () => tone(760, 0.05);
   const winSound = () => [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.22, 'sine', 0.05), i * 130));
+  const loseSound = () => [392, 311, 233].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'sawtooth', 0.04), i * 160));
 
   /* ================= 事件 ================= */
   faceBtn.addEventListener('click', () => { newLevel(level); clickSound(); });
@@ -289,15 +301,10 @@
   flagBtn.addEventListener('click', () => {
     flagMode = !flagMode;
     flagBtn.classList.toggle('on', flagMode);
-    hint.textContent = flagMode ? '插旗模式：点格子 = 标记地雷' : '点击翻开 · 右键或插旗模式标记地雷';
+    hint.textContent = flagMode
+      ? '插旗模式：点格子 = 标记地雷'
+      : '点击翻开 · 右键或插旗模式标记地雷';
     clickSound();
-  });
-  // 插旗模式：点击变为插旗
-  board.addEventListener('click', (e) => {
-    if (!flagMode) return;
-    const cell = e.target.closest('.cell');
-    if (!cell) return;
-    toggleFlag(Number(cell.dataset.r), Number(cell.dataset.c));
   });
   nextBtn.addEventListener('click', () => { newLevel(level + 1); clickSound(); });
 
